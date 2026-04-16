@@ -1,0 +1,114 @@
+# [1단계] Tkinter로 "나만의 학교 식단 앱" 만들기
+
+본 과정은 학생들이 이전에 만든 '식단 크롤러(Python 코드)'를 시각적인 '데스크탑 앱(GUI)'으로 변환하며 프로그래밍의 성취감을 느끼게 하는 단계입니다.
+
+---
+
+## 🎓 강의 목표
+1. **GUI 기초 이해**: 텍스트(터미널) 기반 프로그램과 GUI 프로그램의 차이점을 배웁니다.
+2. **Tkinter 위젯 활용**: 레이블(Label), 버튼(Button), 텍스트(Text) 위젯을 배치해 봅니다.
+3. **이벤트 연결**: 버튼을 눌렀을 때 특정 함수가 실행되도록 연결(Binding) 합니다.
+4. **코드 재사용**: 기존 크롤러 함수를 가져와 GUI 창에 출력합니다.
+
+---
+
+## 🛤️ 단계별 교육 커리큘럼
+
+| 단계 | 주요 학습 내용 | 학생 활동 |
+| :--- | :--- | :--- |
+| **1단계: GUI 맛보기** | Tkinter 기초 설정 (창 생성, 제목 설정) | "Hello World" 창 띄워보기 |
+| **2단계: 화면 배치** | 레이블(글자)과 버튼 배치하기 | "식단 가져오기" 버튼 배치 및 클릭 이벤트 만들기 |
+| **3단계: 코드 연동** | `menu_crawler.py`의 함수 연결하기 | 버튼 클릭 시 실제 API 데이터를 가져와 터미널에 출력하기 |
+| **4단계: 완성 및 UI 개선** | 텍스트 박스(Text)에 식단 출력하기 | 버튼 종류별(식당별)로 다른 식단 보여주기 |
+
+---
+
+## 💻 핵심 예제 코드 (학생/강 사용)
+
+### 1. 가장 기본이 되는 GUI 구조 (1단계)
+```python
+import tkinter as tk
+
+root = tk.Tk()
+root.title("신구대 학식 알리미")
+root.geometry("400x200")
+
+label = tk.Label(root, text="식단 앱에 오신 것을 환영합니다!")
+label.pack(pady=20)
+
+root.mainloop()
+```
+
+### 2. 완성형 샘플 코드 (클래스 구조 활용)
+기존 `menu_crawler.py` 파일이 같은 폴더에 있어야 합니다.
+
+```python
+import tkinter as tk
+from tkinter import messagebox
+# 지난 시간에 만든 크롤러 함수 가져오기
+# from menu_crawler import get_menu_data, format_menu 
+
+class SchoolMenuApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("🏫 우리 학교 식단 확인기")
+        self.root.geometry("420x550")
+        
+        # 🟢 1. 타이틀 영역
+        self.title_label = tk.Label(root, text="🍱 오늘의 메뉴", font=("Malgun Gothic", 18, "bold"))
+        self.title_label.pack(pady=20)
+        
+        # 🟢 2. 식당 선택 버튼 영역
+        self.btn_frame = tk.Frame(root)
+        self.btn_frame.pack(pady=10)
+        
+        # 버튼들 (식당 번호: 교직원-6, 서관-7)
+        self.btn_student = tk.Button(self.btn_frame, text="학생식당(서관)", width=15, 
+                                     command=lambda: self.fetch_menu("7"))
+        self.btn_student.grid(row=0, column=0, padx=5)
+        
+        self.btn_staff = tk.Button(self.btn_frame, text="교직원식당", width=15, 
+                                   command=lambda: self.fetch_menu("6"))
+        self.btn_staff.grid(row=0, column=1, padx=5)
+        
+        # 🟢 3. 식단 출력 영역 (Text 위젯 사용)
+        self.menu_text = tk.Text(root, height=15, width=45, font=("Malgun Gothic", 10))
+        self.menu_text.pack(pady=20, padx=20)
+        
+    def fetch_menu(self, seq):
+        """버튼을 누르면 실행되는 함수"""
+        self.menu_text.delete(1.0, tk.END)
+        self.menu_text.insert(tk.END, "데이터를 불러오는 중입니다... 잠시만 기다려주세요.\n")
+        self.root.update() # 로딩 문구를 즉시 보여주기 위해 화면 갱신
+        
+        try:
+            # 여기에 기존 크롤러 연동 로직이 들어갑니다.
+            # (예시용 가짜 데이터)
+            menu_data = f"식당 번호({seq})의 오늘의 메뉴:\n- 불고기 덮밥\n- 아삭한 김치\n- 시원한 미역국"
+            
+            self.menu_text.delete(1.0, tk.END)
+            self.menu_text.insert(tk.END, menu_data)
+        except Exception as e:
+            messagebox.showerror("오류", f"데이터를 가져오지 못했습니다.\n{e}")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = SchoolMenuApp(root)
+    root.mainloop()
+```
+
+---
+
+## 📢 핵심 티칭 포인트 (Keep Point)
+
+1. **"import tkinter as tk"**: `as tk`는 별명을 붙여주는 것으로, 이후 코딩을 편하게 해준다는 점을 상기시킵니다.
+2. **이벤트 리스너(command)**: 버튼을 누르는 동작과 프로그램의 반응을 연결하는 `command=` 인자의 역할을 중요하게 다룹니다.
+3. **사용자 환경(UX)**: "데이터를 불러오느라 프로그램이 잠시 멈추면 사용자가 당황할 수 있다"는 점을 언급하며 로딩 메시지의 중요성을 설명합니다.
+4. **모듈화의 힘**: "지난 시간에 만든 코드를 한 줄로 가져와서(import) 화면에 바로 쓸 수 있다는 것"이 라이브러리의 핵심임을 알려줍니다.
+
+---
+
+## 🚀 심화 과제 (도전!)
+- **디자인 업그레이드**: 배경색(`bg`), 글자색(`fg`), 폰트 스타일을 바꿔서 더 예쁜 앱 만들기.
+- **이미지 추가**: `PIL(Pillow)` 라이브러리를 사용해 식당 아이콘이나 음식 사진 추가해보기.
+- **새로고침 버튼**: 특정 시간마다 메뉴 자동 갱신 기능 넣기.

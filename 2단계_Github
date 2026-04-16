@@ -1,0 +1,126 @@
+# [2단계] GitHub Actions로 "식단 배달 로봇" 만들기
+
+본 과정은 내가 만든 프로그램이 내 컴퓨터를 끄더라도 24시간 작동하게 만드는 **"클라우드 자동화(Cloud Automation)"** 단계입니다.
+
+---
+
+## 🎓 강의 목표
+1. **GitHub Actions 이해**: 서버 없이 코드를 실행하는 '서버리스(Serverless)' 개념을 배웁니다.
+2. **워크플로우(Workflow) 작성**: YAML 형식을 사용하여 실행 순서를 설계합니다.
+3. **보안(Secrets) 설정**: API 토큰과 같은 민감한 정보를 안전하게 관리하는 법을 익힙니다.
+4. **자동화 스케줄링**: 매일 아침 정해진 시간에 식단이 배달되도록 설정합니다.
+
+---
+
+## 🛤️ 단계별 구축 과정
+
+| 단계 | 주요 작업 내용 | 체크 포인트 |
+| :--- | :--- | :--- |
+| **1단계: 코드 업로드** | 작성한 코드를 GitHub 저장소(Repository)에 올리기 | `.gitignore`로 불필요한 파일 제외하기 |
+| **2단계: 보안 설정** | `Settings` -> `Secrets`에 텔레그램 토큰 등록 | 환경 변수 이름이 코드와 일치하는지 확인 |
+| **3단계: 워크플로우 작성** | `.github/workflows/daily_menu.yml` 파일 생성 | YAML 파일의 들여쓰기(Indent) 주의 |
+| **4단계: 테스트 및 자동화** | 직접 실행(Workflow Dispatch) 및 스케줄 확인 | 매일 아침 8시 30분(KST) 자동 실행 설정 |
+
+---
+
+## 🔑 사전 준비: 텔레그램 & GitHub Secrets 설정
+
+GitHub Actions가 나 대신 메시지를 보내려면 **열쇠(Token)**와 **상자(Secrets)**가 필요합니다.
+
+### 1. 텔레그램 봇 만들기 (열쇠 받기)
+1. 텔레그램에서 **@BotFather** 검색 -> `/newbot` 입력
+2. 봇 이름과 아이디(끝이 `bot`으로 끝남) 설정
+3. **HTTP API Token** 복사 (예: `123456:ABCDE...`) -> 이것이 `TELEGRAM_BOT_TOKEN`
+4. **@userinfobot** 검색 -> 아무 메시지나 보내서 내 숫자 ID 확인 -> 이것이 `TELEGRAM_CHAT_ID`
+
+### 2. GitHub Secrets 등록 (상자에 넣기)
+내 코드에 직접 토큰을 적으면 위험하므로, GitHub의 비밀 상자에 넣어둡니다.
+1. 내 GitHub 저장소 -> Settings 클릭
+2. 왼쪽 메뉴: Secrets and variables -> Actions 클릭
+
+> ⚠️ [매우 중요] 각각 따로따로 등록하세요! (총 2번 반복)
+> 
+> (1) 첫 번째 상자 만들기 (봇 토큰)
+> 1. [New repository secret] 버튼 클릭
+> 2. Name: TELEGRAM_BOT_TOKEN
+> 3. Value: 아까 받은 긴 토큰값 붙여넣기
+> 4. [Add secret] 버튼 클릭하여 저장하기
+> 
+> (2) 두 번째 상자 만들기 (채팅 ID)
+> 1. (다시 한 번) [New repository secret] 버튼 클릭
+> 2. Name: TELEGRAM_CHAT_ID
+> 3. Value: 아까 받은 내 숫자 ID값 붙여넣기
+> 4. [Add secret] 버튼 클릭하여 저장하기
+
+
+---
+가장 주의할 점!
+- Name에 쓰는 글자(TELEGRAM_BOT_TOKEN 등)에 하나라도 오타가 나면 안 됩니다.
+- 앞뒤로 빈칸(공백)이 들어가지 않도록 주의하세요.
+- 등록을 마친 후 목록에 2개가 제대로 보이는지 꼭 확인하세요!
+
+---
+
+## 💾 GitHub Actions 설정 코드 (YAML)
+
+이 파일은 저장소의 `.github/workflows/` 폴더 안에 위치해야 합니다.
+
+```yaml
+name: '🍱 학교 식단 자동 배달 로봇'
+
+on:
+  schedule:
+    # 📝 UTC 기준 (한국 시간 KST = UTC + 9)
+    # 아래 설정은 한국 시간 기준 매일 아침 08:30에 실행됩니다.
+    - cron: '30 23 * * *' 
+  workflow_dispatch: # 👈 [중요] 버튼을 눌러 수동으로 즉시 실행할 수 있게 합니다.
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest # 가상의 리눅스 서버에서 실행합니다.
+
+    steps:
+      - name: 📂 코드 가져오기
+        uses: actions/checkout@v3
+
+      - name: 🐍 파이썬 환경 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 📦 필요한 라이브러리 설치
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: 🚀 식단 크롤러 실행
+        env:
+          # GitHub Secrets에 등록한 값을 환경변수로 연결합니다.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python menu_crawler.py
+```
+
+---
+
+## 📢 핵심 티칭 포인트 (Keep Point)
+
+1. **"YAML(야믈)이란?"**: 사람이 읽기 쉬운 데이터 형식이며, 들여쓰기가 매우 중요하다는 점을 강조합니다.
+2. **"Secrets(비밀)"**: 코드에 직접 토큰을 적으면 해킹의 위험이 크다는 점을 알려주고, GitHub의 보안 기능을 사용하는 습관을 길러줍니다.
+3. **"UTC vs KST"**: 서버의 시계는 전 세계 공용인 UTC를 사용하므로, 한국 시간에서 9시간을 빼서 계산해야 한다는 점을 가르칩니다.
+4. **"자동화의 성취감"**: "내가 자고 있어도 컴퓨터가 나 대신 일한다"는 기술적 효능감을 강조합니다.
+
+---
+
+## 🚀 심화 과제 (도전!)
+- **에러 알림**: 크롤링이 실패했을 때만 나에게 알림이 오도록 워크플로우 수정하기.
+- **다양한 시간**: 점심 식단뿐만 아니라 저녁 식단 시간에도 한 번 더 실행되도록 `cron` 추가하기.
+- **README 배지**: 내 저장소 메인 화면에 자동화 성공 여부를 보여주는 'Badges' 달아보기.
+
+requirements.txt 파일 확인
+
+GitHub Actions가 라이브러리를 설치하려면 저장소에 requirements.txt 파일이 꼭 있어야 합니다.
+현재 폴더에 있는 파일 내용은 다음과 같아야 합니다:
+
+requests
+urllib3

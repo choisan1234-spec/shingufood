@@ -1,0 +1,31 @@
+name: '🍱 학교 식단 자동 배달 로봇'
+
+on:
+  schedule:
+    # 📝 한국 시간(KST) 매일 아침 08:30에 실행 -> UTC 기준 23:30 (하루 전)
+    - cron: '30 23 * * *' 
+  workflow_dispatch: 
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📂 코드 가져오기
+        uses: actions/checkout@v3
+
+      - name: 🐍 파이썬 환경 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 📦 필요한 라이브러리 설치
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: 🚀 식단 크롤러 실행
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python auto_menu_sender.py
